@@ -7,12 +7,16 @@ from scipy.stats import zscore
 from sklearn import preprocessing
 from sklearn.ensemble import RandomForestClassifier
 from imblearn.over_sampling import SMOTE
+import numpy as np
 
-
+columns = ['age', 'workclass', 'fnlwgt', 'education', 'education_num', 'marital_status', 'occupation',
+               'relationship', 'race', 'sex', 'capital_gain', 'capital_loss', 'hours_per_week', 'native_country',
+               'label']
 # Import dataset and set column names
 def load_data(path, names):
     df = pd.DataFrame(pd.read_csv(path, header = None))
     df.columns = names
+    df = consistent_label(df)
     return df
 
 
@@ -64,7 +68,7 @@ def encoder_normalize(df, col):
 # Parameter 'col' is a list of column names to be imputed
 def rf_imputation(df, col):
     df_imp = df
-    df_miss = df_imp.loc[(df_imp[col[0]].isin(['0'])) | (df_imp[col[1]].isin(['0'])) | (df_imp[col[2]].isin(['0']))] 
+    df_miss = df_imp.loc[(df_imp[col[0]].isin(['0'])) | (df_imp[col[1]].isin(['0'])) | (df_imp[col[2]].isin(['0']))]
     df_imp.drop(df_miss.index, inplace=True)
     for c in col:
         X = df_imp.drop(col+['label'], axis=1)
@@ -78,6 +82,20 @@ def rf_imputation(df, col):
     return df_imp
 
 
+def feature_extend(df, feature_name):
+    df_etd = df
+    df_etd = pd.get_dummies(df_etd, columns = [feature_name])
+    get_unique(train)[feature_name]
+
+
+def balance(df):
+    c = df.columns
+    X, y = SMOTE().fit_resample(df.drop(['label'], axis=1), df['label'])
+    y = y.reshape(-1,1)
+    df_bl = pd.DataFrame(np.hstack((X,y)))
+    df_bl.columns = c
+    return df_bl
+
 # Consist label classes btwm train and test data
 def consistent_label(pd_dataframe):
     pd_dataframe["label"] = pd_dataframe["label"].replace([" >50K.", " <=50K."], [" >50K", " <=50K"])
@@ -86,8 +104,8 @@ def consistent_label(pd_dataframe):
 
 # Quick way to complete preprocess
 def preprocess(df):
-    df_pp = df
-    df_pp = min_max_normalize(df_pp, ['capital_gain', 'capital_loss'])
+    df_pp = df[(True^df['native_country'].isin([' Holand-Netherlands']))]
+    df_pp = min_max_normalize(df_pp, ['capital_gain', 'capital_loss', 'fnlwgt'])
     df_pp = encoder_normalize(df_pp, ['workclass',
                                       'education',
                                       'marital_status',
@@ -95,29 +113,52 @@ def preprocess(df):
                                       'relationship',
                                       'race',
                                       'sex',
-                                      'native_country'])
+                                      'native_country',
+                                      'label'])
     imp_col = ['workclass', 'occupation', 'native_country']
     df_pp = rf_imputation(df_pp, imp_col)
-    return df_pp
+    df_bl = balance(df_pp)
+    return df_bl
+
+
+def get_dummy(df, dropfnlwgt=False):
+    df_pp = preprocess(df)
+    # Feature selection
+    df_dm = df_pp.drop(['education','occupation','relationship','sex'], axis=1)
+    if dropfnlwgt == True:
+        df_dm = df_dm.drop(['fnlwgt'], axis=1)
+    # Extend features
+    dummy_list = ['workclass','marital_status','race','native_country']
+    for i in dummy_list:
+        df_dm[i] = df_dm[i].astype('int')
+    df_dm = pd.get_dummies(df_dm, columns = dummy_list)
+    adjust_columns = list(df_dm.columns)
+    adjust_columns.remove('label')
+    adjust_columns.append('label')
+    df_dm = df_dm[adjust_columns]
+    return df_dm
 
 
 if __name__ == "__main__":
-    
+
     # load train data
-    train_path = '/Users/qiangwenxu/Documents/CISC/6930 DATA MINING/group_project/census-income.data.csv'
+    train_path = 'census-income.data.csv'
     columns = ['age','workclass','fnlwgt','education','education_num','marital_status','occupation','relationship','race','sex','capital_gain','capital_loss','hours_per_week','native_country','label']
     train = load_data(train_path, columns)
-    
-    
+
+
     # Put all unique value into a dictionary for further querying
     unique = get_unique(train)
+    print(unique['workclass'])
     unique_count = get_distribution(train)
-    
-    
+    print(unique_count['workclass'][' Local-gov'])
+
+
     # Normalize train data by min_max method
-    train = min_max_normalize(train, ['capital_gain', 
+    train = min_max_normalize(train, ['capital_gain',
                                       'capital_loss'])
-    
+
+
     # Normalize train data by encoder method
     train = encoder_normalize(train, ['workclass',
                                       'education',
@@ -127,11 +168,14 @@ if __name__ == "__main__":
                                       'race',
                                       'sex',
                                       'native_country'])
-    
+
+
     # Deal with missing value (around 7.37%) through random forest
     imputate_columns = ['workclass', 'occupation', 'native_country']
     train = rf_imputation(train, imputate_columns)
-    
-    
+
     # Deal with imbalance through SMOTE
     X_train, y_train = SMOTE().fit_resample(train.drop(['label'], axis=1), train['label'])
+    y_train = y_train.reshape(-1,1)
+    train = pd.DataFrame(np.hstack((X_train,y_train)))
+    train.columns = columns
