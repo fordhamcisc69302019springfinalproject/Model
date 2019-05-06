@@ -30,15 +30,16 @@ if __name__ == "__main__":
     columns = ['age', 'workclass', 'fnlwgt', 'education', 'education_num', 'marital_status', 'occupation',
                'relationship', 'race', 'sex', 'capital_gain', 'capital_loss', 'hours_per_week', 'native_country',
                'label']
-    data = load_data("data/census-income.data.csv",columns)
-    data = get_dummy(data,False)
-    x_train = data.iloc[:,:-1]
-    y_train = data.iloc[:,-1]
     data = load_data("data/census-income.data.csv", columns)
     data = get_dummy(data, False)
+    x_train = data.iloc[:, :-1]
+    y_train = data.iloc[:, -1]
+    x_train = x_train.drop(["workclass_3"],axis = 1)
+    data = load_data("data/census-income.test", columns)
+    data = get_dummy(data, False,False)
     x_test = data.iloc[:,:-1]
     y_test = data.iloc[:,-1]
-    lr = LogisticRegression(penalty="l2", solver='sag', max_iter=100, C=4)
+    lr = LogisticRegression(penalty="l1", solver='liblinear', max_iter=100, C=2)
     lr.fit(x_train, y_train)
     #accuarcy = cross_val_score(KNN, x_train, y_train).mean()
     #print("k = %d,Accuracy: %f"%(1,accuarcy))

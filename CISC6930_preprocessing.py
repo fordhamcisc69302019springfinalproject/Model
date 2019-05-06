@@ -9,9 +9,7 @@ from sklearn.ensemble import RandomForestClassifier
 from imblearn.over_sampling import SMOTE
 import numpy as np
 
-columns = ['age', 'workclass', 'fnlwgt', 'education', 'education_num', 'marital_status', 'occupation',
-               'relationship', 'race', 'sex', 'capital_gain', 'capital_loss', 'hours_per_week', 'native_country',
-               'label']
+
 # Import dataset and set column names
 def load_data(path, names):
     df = pd.DataFrame(pd.read_csv(path, header = None))
@@ -103,7 +101,7 @@ def consistent_label(pd_dataframe):
 
 
 # Quick way to complete preprocess
-def preprocess(df):
+def preprocess(df, ifSMOTE=True):
     df_pp = df[(True^df['native_country'].isin([' Holand-Netherlands']))]
     df_pp = min_max_normalize(df_pp, ['capital_gain', 'capital_loss', 'fnlwgt'])
     df_pp = encoder_normalize(df_pp, ['workclass',
@@ -113,16 +111,16 @@ def preprocess(df):
                                       'relationship',
                                       'race',
                                       'sex',
-                                      'native_country',
-                                      'label'])
+                                      'native_country'])
     imp_col = ['workclass', 'occupation', 'native_country']
     df_pp = rf_imputation(df_pp, imp_col)
-    df_bl = balance(df_pp)
-    return df_bl
+    if ifSMOTE == True:
+        df_pp = balance(df_pp)
+    return df_pp
 
 
-def get_dummy(df, dropfnlwgt=False):
-    df_pp = preprocess(df)
+def get_dummy(df, dropfnlwgt=False,ifSMOTE = True):
+    df_pp = preprocess(df,ifSMOTE)
     # Feature selection
     df_dm = df_pp.drop(['education','occupation','relationship','sex'], axis=1)
     if dropfnlwgt == True:
