@@ -21,11 +21,10 @@ if __name__ == "__main__":
     scores = []
     accuarcy = []
     scoring = make_scorer(accuracy_score)
-    rf = RandomForestClassifier(n_estimators = 500,max_depth=5,max_features = "auto",oob_score = True,warm_start = True)
+    rf = RandomForestClassifier(max_features = "log2",n_estimators = 700,max_depth=27,oob_score = True,warm_start = True)
     rf.fit(x_train,y_train)
-    #print(cross_val_score(rf,x_train,y_train,scoring=scoring).mean())
+    print(cross_val_score(rf,x_train,y_train,scoring=scoring).mean())
     predict = rf.predict(x_test)
-    print(predict)
     print(accuracy_score(predict,y_test))
 
 

@@ -9,7 +9,7 @@ from sklearn.model_selection import validation_curve
 from sklearn import svm
 from sklearn import neighbors
 from sklearn.linear_model import LogisticRegression
-rf = RandomForestClassifier()
+rf = RandomForestClassifier(max_features = "log2")
 KNN = neighbors.KNeighborsClassifier()
 SVM = svm.SVC(kernel="sigmoid")
 
@@ -26,15 +26,15 @@ y = data.iloc[:, -1]
 scoring = make_scorer(accuracy_score)
 l1 = LogisticRegression(penalty="l1", solver='liblinear', max_iter=100)
 l2 = LogisticRegression(penalty="l2", solver='sag', max_iter=100)
-param_range = np.array(list(range(1,10)))
+param_range = np.array(list(range(1,50)))
 train_scores, test_scores = validation_curve(
-    SVM, X, y, param_name="C", param_range=param_range,
+    rf, X, y, param_name="max_depth", param_range=param_range,
     cv=5, scoring=scoring, n_jobs=1)
 train_scores_mean = np.mean(train_scores, axis=1)
 train_scores_std = np.std(train_scores, axis=1)
 test_scores_mean = np.mean(test_scores, axis=1)
 test_scores_std = np.std(test_scores, axis=1)
-print("sigmoid")
+print("rf")
 print("train_scores",train_scores_mean)
 print("test socore",test_scores_mean)
 test_scores_mean = list(test_scores_mean)
@@ -56,5 +56,5 @@ plt.fill_between(param_range, test_scores_mean - test_scores_std,
                  test_scores_mean + test_scores_std, alpha=0.2,
                  color="navy", lw=lw)
 plt.legend(loc="best")
-plt.savefig("./pictures/validation_curve/svm_sigmoid_c.png")
+plt.savefig("./pictures/validation_curve/rf_new_maxdepth.png")
 plt.show()
